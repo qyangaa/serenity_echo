@@ -1,0 +1,130 @@
+You are an expert in Flutter, Dart, Firebase, OpenAI API integration, and Natural Language Processing (NLP).
+
+# Code Style and Structure
+
+- Write clean, modern Dart code following Flutter conventions.
+- Use a modular architecture with separation of UI, business logic, and services.
+- Leverage the provider pattern for state management.
+- Focus on mobile-first development with responsive design principles.
+- Ensure the app is accessible and user-friendly, with intuitive navigation.
+
+# Project Structure
+/lib
+/ui        # Screens, widgets, and UI components
+/services  # API services (OpenAI, Firebase, NLP integration)
+/utils     # Helper functions and utilities
+/models    # Data models and type definitions
+/state     # State management logic (e.g., Provider or Riverpod)
+/assets    # Static resources like fonts, images, and audio files
+/config    # App configuration and constants
+
+# Naming Conventions
+
+- Use PascalCase for class names and filenames (e.g., `VoiceJournalScreen`).
+- Use camelCase for variables, methods, and state management properties.
+- Prefix asynchronous methods with `fetch` or `load` (e.g., `fetchUserJournals`).
+- Name API service files with "Service" suffix (e.g., `OpenAIService`).
+
+# Flutter Best Practices
+
+- Use StatelessWidget for UI elements without state and StatefulWidget for those with local state.
+- Prefer Flutter’s `FutureBuilder` and `StreamBuilder` for asynchronous data handling.
+- Optimize rendering with `const` constructors and `RepaintBoundary` where applicable.
+- Use Flutter packages judiciously (e.g., `speech_to_text`, `provider`, `http`, `dio`).
+
+# State Management
+
+- Use the `provider` package for managing application-wide state.
+- Keep the app state simple and predictable with clear segregation between UI and business logic.
+- Use context-based state only for local, short-lived states (e.g., form input).
+
+# Business Logic
+
+## Core Features
+
+1. **Voice-to-Text Integration**
+   - Convert spoken input to text using APIs like Google Speech-to-Text.
+   - Provide feedback during recording (e.g., a visual waveform or animated mic icon).
+   - Store transcriptions for further processing by AI.
+
+2. **AI-Powered Conversations**
+   - Integrate OpenAI API for natural language interactions.
+   - Offer context-aware prompts, such as:
+     - “Would you like help reframing this thought?”
+     - “Can I assist you in practicing gratitude?”
+   - Allow users to ask follow-up questions for deeper journaling.
+
+3. **Emotional Analysis**
+   - Analyze journal content for sentiment and emotional tone.
+   - Display a simple emotional summary (e.g., pie chart or emoji-based feedback).
+   - Suggest activities based on detected mood (e.g., mindfulness for stress).
+
+4. **Summarization and Insights**
+   - Generate a summary of the day’s journal using AI.
+   - Offer personalized tips, such as mindfulness exercises or gratitude practices.
+   - Highlight recurring patterns or sentiments over time.
+
+# UI and Styling
+
+- Use Material Design principles for Android and Cupertino widgets for iOS.
+- Ensure consistency in colors, fonts, and spacing across the app.
+- Implement accessible designs with readable fonts and adjustable sizes.
+- Use animations sparingly to enhance, not overwhelm, user interactions.
+
+# AI Integration
+
+- Implement OpenAI API calls in the `services` module.
+- Handle API rate limiting and error cases gracefully.
+- Provide fallback messages or suggestions if AI processing fails.
+- Cache frequently used prompts to optimize performance.
+
+# Performance Considerations
+
+- Implement lazy loading for widgets and data.
+- Optimize network calls with efficient caching strategies.
+- Reduce memory overhead with proper widget lifecycle management.
+- Test performance on both high-end and low-end devices.
+
+# Security and Privacy
+
+- Use Firebase Authentication for secure login.
+- Encrypt journal data stored locally using Flutter secure storage.
+- Ensure all API keys and sensitive data are stored in environment variables.
+- Comply with GDPR and other privacy standards, allowing users to export or delete data.
+
+# Deployment
+
+- Test thoroughly on both iOS and Android.
+- Automate builds using CI/CD tools like GitHub Actions or Bitrise.
+- Prepare app store assets (icons, descriptions, screenshots) for App Store and Play Store.
+- Monitor app performance and crashes with Firebase Crashlytics.
+
+# Future Enhancements
+
+1. **Advanced AI Features**
+   - Context-aware prompts based on journaling history.
+   - Personalized suggestions for self-care and growth.
+
+2. **Visualization**
+   - Mood tracking charts with emotional patterns over weeks or months.
+   - Word clouds generated from frequently used journal terms.
+
+3. **Community and Sharing**
+   - Anonymous sharing of insights or gratitude moments within a community.
+   - Export journals as PDFs with elegant formatting.
+
+4. **Customizable Experiences**
+   - Allow users to set journaling goals or themes (e.g., gratitude, self-discovery).
+   - Provide optional guided journaling sessions.
+
+# Testing
+
+- Write unit tests for services and utilities.
+- Use integration tests for major workflows (e.g., voice-to-text to journaling summary).
+- Manually test voice input and AI interaction on real devices for both platforms.
+
+# Version Control
+
+- Use clear commit messages (e.g., “Add voice transcription feature”).
+- Create feature branches for new functionality.
+- Merge changes only after thorough code reviews.
