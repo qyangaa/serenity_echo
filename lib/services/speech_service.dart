@@ -2,10 +2,13 @@ import 'package:flutter/foundation.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 class SpeechService extends ChangeNotifier {
-  final SpeechToText _speechToText = SpeechToText();
+  final SpeechToText _speechToText;
   bool _isListening = false;
   String _text = '';
   double _confidence = 0.0;
+
+  SpeechService({SpeechToText? speechToText})
+      : _speechToText = speechToText ?? SpeechToText();
 
   bool get isListening => _isListening;
   String get text => _text;
@@ -48,6 +51,15 @@ class SpeechService extends ChangeNotifier {
 
   void clearText() {
     _text = '';
+    _confidence = 0.0;
+    notifyListeners();
+  }
+
+  // For testing purposes
+  @visibleForTesting
+  void updateText(String text, double confidence) {
+    _text = text;
+    _confidence = confidence;
     notifyListeners();
   }
 }
