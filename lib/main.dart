@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
 import 'services/speech_service.dart';
 import 'services/chat_service.dart';
@@ -15,6 +16,11 @@ const String _devUserId = 'dev_user_123';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Load environment variables
+  await dotenv.load(fileName: ".env");
+
+  // Initialize Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -36,7 +42,9 @@ class MyApp extends StatelessWidget {
           create: (_) => FirestoreStorageService(userId: _devUserId),
         ),
         Provider<IAIService>(
-          create: (_) => OpenAIService(),
+          create: (_) => OpenAIService(
+            apiKey: dotenv.env['OPENAI_API_KEY'] ?? '',
+          ),
         ),
         ChangeNotifierProxyProvider2<IStorageService, IAIService, ChatService>(
           create: (context) => ChatService(

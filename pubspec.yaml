@@ -53,6 +53,9 @@ dependencies:
   firebase_auth: ^4.15.3
   cloud_firestore: ^4.15.5
 
+  # Environment Variables
+  flutter_dotenv: ^5.1.0
+
   # Chat UI
   flutter_chat_ui: ^1.6.12
   flutter_chat_types: ^3.6.2
@@ -115,3 +118,7 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+  assets:
+    - .env
+    - .env.example
