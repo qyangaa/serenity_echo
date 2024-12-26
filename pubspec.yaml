@@ -49,8 +49,17 @@ dependencies:
   path_provider: ^2.1.2
 
   # Firebase
-  firebase_core: ^2.27.1
-  firebase_auth: ^4.17.9
+  firebase_core: ^2.24.2
+  firebase_auth: ^4.15.3
+  cloud_firestore: ^4.15.5
+
+  # Chat UI
+  flutter_chat_ui: ^1.6.12
+  flutter_chat_types: ^3.6.2
+  uuid: ^4.3.3
+
+  # Date Time
+  intl: ^0.19.0
 
 dev_dependencies:
   flutter_test:

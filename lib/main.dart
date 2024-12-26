@@ -3,7 +3,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'services/speech_service.dart';
-import 'ui/screens/voice_journal_screen.dart';
+import 'services/chat_service.dart';
+import 'ui/screens/chat_journal_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,8 +19,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => SpeechService(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => SpeechService()),
+        ChangeNotifierProvider(create: (_) => ChatService()),
+      ],
       child: MaterialApp(
         title: 'SerenityEcho',
         theme: ThemeData(
@@ -50,7 +54,7 @@ class HomeScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Icon(
-              Icons.mic,
+              Icons.chat_bubble_outline,
               size: 64,
               color: Colors.teal,
             ),
@@ -71,22 +75,23 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 48),
-            ElevatedButton(
+            ElevatedButton.icon(
               onPressed: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const VoiceJournalScreen(),
+                    builder: (context) => const ChatJournalScreen(),
                   ),
                 );
               },
+              icon: const Icon(Icons.chat),
+              label: const Text('Start Journaling'),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 32,
                   vertical: 16,
                 ),
               ),
-              child: const Text('Start Recording'),
             ),
           ],
         ),
