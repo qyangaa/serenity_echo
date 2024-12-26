@@ -1,16 +1,57 @@
-# serenity_echo
+# SerenityEcho
 
-A new Flutter project.
+SerenityEcho is an AI-powered voice journaling app that helps users reflect on their thoughts and emotions through natural conversation. Built with Flutter and Firebase, it provides a seamless experience for recording, transcribing, and analyzing journal entries.
+
+## Features
+
+- 🎤 Voice-to-text journaling with real-time transcription
+- 🤖 AI-powered conversation and emotional analysis
+- 📱 Modern, intuitive UI with Material Design 3
+- 🔒 Secure data storage with Firebase
+- 🌙 Journal entry history and insights
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+### Prerequisites
 
-A few resources to get you started if this is your first Flutter project:
+- Flutter SDK (3.6.0 or higher)
+- Dart SDK (3.6.0 or higher)
+- iOS Simulator or Android Emulator
+- Firebase project setup
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+### Installation
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+1. Clone the repository:
+
+```bash
+git clone https://github.com/yourusername/serenity_echo.git
+cd serenity_echo
+```
+
+2. Install dependencies:
+
+```bash
+flutter pub get
+```
+
+3. Run the app:
+
+```bash
+flutter run
+```
+
+## Tech Stack
+
+- Flutter & Dart
+- Firebase (Authentication & Storage)
+- Provider for state management
+- OpenAI API for conversation
+- Speech-to-text for voice input
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
