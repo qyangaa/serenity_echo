@@ -11,4 +11,13 @@ abstract class IChatService extends ChangeNotifier {
 
   /// Clear all chat messages and create a new session
   Future<void> clearChat();
+
+  /// Generate follow-up questions based on the current conversation
+  Future<List<String>> generateFollowUpQuestions();
+
+  /// Analyze emotions in a message
+  Future<Map<String, double>> analyzeEmotions(String message);
+
+  /// Generate a reflection prompt based on the current conversation
+  Future<String> generateReflectionPrompt();
 }

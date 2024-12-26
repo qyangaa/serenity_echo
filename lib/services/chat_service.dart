@@ -68,6 +68,20 @@ class ChatService extends ChangeNotifier implements IChatService {
   @override
   Future<void> addUserMessage(String content) async {
     try {
+      // First, moderate the content
+      final isContentSafe = await _moderateContent(content);
+      if (!isContentSafe) {
+        final aiMessage = ChatMessage.createAIMessage(
+          'I apologize, but I cannot process that content. Please ensure your message follows our community guidelines.',
+        );
+        _currentSession = _currentSession?.copyWith(
+          messages: [...(_currentSession?.messages ?? []), aiMessage],
+          messageCount: (_currentSession?.messageCount ?? 0) + 1,
+        );
+        notifyListeners();
+        return;
+      }
+
       if (_currentSession == null) {
         await _loadCurrentSession();
       }
@@ -123,6 +137,15 @@ class ChatService extends ChangeNotifier implements IChatService {
       if (kDebugMode) {
         print('Error in chat interaction: $e');
       }
+      // Add error message to chat
+      final errorMessage = ChatMessage.createAIMessage(
+        'I apologize, but I encountered an error. Please try again.',
+      );
+      _currentSession = _currentSession?.copyWith(
+        messages: [...(_currentSession?.messages ?? []), errorMessage],
+        messageCount: (_currentSession?.messageCount ?? 0) + 1,
+      );
+      notifyListeners();
     }
   }
 
@@ -155,6 +178,68 @@ class ChatService extends ChangeNotifier implements IChatService {
       if (kDebugMode) {
         print('Error clearing chat: $e');
       }
+    }
+  }
+
+  @override
+  Future<List<String>> generateFollowUpQuestions() async {
+    try {
+      if (_currentSession == null || _currentSession!.messages.isEmpty) {
+        return [];
+      }
+      return await _aiService
+          .generateFollowUpQuestions(_currentSession!.messages);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error generating follow-up questions: $e');
+      }
+      return [];
+    }
+  }
+
+  @override
+  Future<Map<String, double>> analyzeEmotions(String message) async {
+    try {
+      return await _aiService.analyzeEmotion(message);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error analyzing emotions: $e');
+      }
+      return {
+        'joy': 0.0,
+        'sadness': 0.0,
+        'anger': 0.0,
+        'fear': 0.0,
+        'surprise': 0.0,
+        'love': 0.0,
+      };
+    }
+  }
+
+  @override
+  Future<String> generateReflectionPrompt() async {
+    try {
+      if (_currentSession == null || _currentSession!.messages.isEmpty) {
+        return 'What would you like to reflect on today?';
+      }
+      return await _aiService
+          .generateReflectionPrompt(_currentSession!.messages);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error generating reflection prompt: $e');
+      }
+      return 'What was the most meaningful part of your day?';
+    }
+  }
+
+  Future<bool> _moderateContent(String content) async {
+    try {
+      return await _aiService.moderateContent(content);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error moderating content: $e');
+      }
+      return true; // Default to allowing content if moderation fails
     }
   }
 }

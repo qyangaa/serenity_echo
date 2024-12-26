@@ -34,6 +34,8 @@ void main() {
         .thenAnswer((_) async => "Mock AI Response");
     when(() => mockAIService.generateSummary(any()))
         .thenAnswer((_) async => "Mock Summary");
+    when(() => mockAIService.moderateContent(any()))
+        .thenAnswer((_) async => true);
     when(() => mockStorageService.loadCurrentSession())
         .thenAnswer((_) async => mockSession);
     when(() => mockStorageService.saveChatSession(any()))
@@ -140,7 +142,8 @@ void main() {
 
       // Should not throw error
       await chatService.addUserMessage('Test message');
-      expect(chatService.messages.length, equals(2));
+      expect(chatService.messages.length,
+          equals(3)); // User message + AI response + error message
     });
   });
 
@@ -155,6 +158,126 @@ void main() {
 
       // Verify new session was loaded
       verify(() => mockStorageService.loadCurrentSession()).called(2);
+    });
+  });
+
+  group('ChatService AI Interactions', () {
+    test('should generate follow-up questions after user message', () async {
+      // Arrange
+      const userMessage = 'I had a challenging day at work';
+      const aiResponse = 'I understand that must have been difficult';
+      final followUpQuestions = [
+        'What was the most challenging part?',
+        'How did you handle it?',
+        'What would you do differently next time?'
+      ];
+
+      when(() => mockAIService.getResponse(userMessage))
+          .thenAnswer((_) async => aiResponse);
+      when(() => mockAIService.generateFollowUpQuestions(any()))
+          .thenAnswer((_) async => followUpQuestions);
+
+      // Act
+      await chatService.addUserMessage(userMessage);
+      final questions = await chatService.generateFollowUpQuestions();
+
+      // Assert
+      expect(questions, equals(followUpQuestions));
+      verify(() => mockAIService.generateFollowUpQuestions(any())).called(1);
+    });
+
+    test('should analyze emotions in user messages', () async {
+      // Arrange
+      const userMessage = 'I feel really happy today!';
+      final expectedEmotions = {
+        'joy': 0.9,
+        'sadness': 0.0,
+        'anger': 0.0,
+        'fear': 0.0,
+        'surprise': 0.2,
+        'love': 0.5,
+      };
+
+      when(() => mockAIService.analyzeEmotion(userMessage))
+          .thenAnswer((_) async => expectedEmotions);
+
+      // Act
+      await chatService.addUserMessage(userMessage);
+      final emotions = await chatService.analyzeEmotions(userMessage);
+
+      // Assert
+      expect(emotions, equals(expectedEmotions));
+      verify(() => mockAIService.analyzeEmotion(userMessage)).called(1);
+    });
+
+    test('should generate reflection prompt based on conversation', () async {
+      // Arrange
+      const userMessage = 'I learned something new today';
+      const expectedPrompt =
+          'How might this new knowledge change your perspective?';
+
+      when(() => mockAIService.generateReflectionPrompt(any()))
+          .thenAnswer((_) async => expectedPrompt);
+
+      // Act
+      await chatService.addUserMessage(userMessage);
+      final prompt = await chatService.generateReflectionPrompt();
+
+      // Assert
+      expect(prompt, equals(expectedPrompt));
+      verify(() => mockAIService.generateReflectionPrompt(any())).called(1);
+    });
+
+    test('should moderate user content before processing', () async {
+      // Arrange
+      const safeMessage = 'I had a good day';
+      const unsafeMessage = 'UNSAFE CONTENT';
+
+      when(() => mockAIService.moderateContent(safeMessage))
+          .thenAnswer((_) async => true);
+      when(() => mockAIService.moderateContent(unsafeMessage))
+          .thenAnswer((_) async => false);
+
+      // Act & Assert
+      await chatService.addUserMessage(safeMessage);
+      expect(chatService.messages.last.content, isNot(equals('I apologize')));
+
+      await chatService.addUserMessage(unsafeMessage);
+      expect(chatService.messages.last.content, contains('I apologize'));
+    });
+
+    test('should handle AI service errors gracefully', () async {
+      // Arrange
+      const userMessage = 'Test message';
+      when(() => mockAIService.getResponse(any()))
+          .thenThrow(Exception('AI service error'));
+
+      // Act
+      await chatService.addUserMessage(userMessage);
+
+      // Assert
+      expect(chatService.messages.last.content, contains('I apologize'));
+      expect(chatService.messages.last.isUser, isFalse);
+    });
+
+    test('should maintain conversation context', () async {
+      // Arrange
+      const firstMessage = 'I started a new project';
+      const secondMessage = 'It\'s going well';
+      const contextAwareResponse = 'That\'s great to hear about your project!';
+
+      when(() => mockAIService.getResponse(firstMessage))
+          .thenAnswer((_) async => contextAwareResponse);
+      when(() => mockAIService.getResponse(secondMessage))
+          .thenAnswer((_) async => contextAwareResponse);
+
+      // Act
+      await chatService.addUserMessage(firstMessage);
+      await chatService.addUserMessage(secondMessage);
+
+      // Assert
+      verify(() => mockAIService.getResponse(firstMessage)).called(1);
+      verify(() => mockAIService.getResponse(secondMessage)).called(1);
     });
   });
 }
