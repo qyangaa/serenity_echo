@@ -31,7 +31,7 @@ bullet_points=$2
 
 # Format code
 print_color $YELLOW "Formatting code..."
-flutter format .
+dart format .
 dart fix --apply
 
 # Stage all changes
