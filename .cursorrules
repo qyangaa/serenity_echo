@@ -140,34 +140,34 @@ You are an expert in Flutter, Dart, Firebase, OpenAI API integration, and Natura
 
 ## Commit Command
 
-When the user says "commit" or "custom commit", follow these steps:
+When the user says "commit" or "custom commit", I will:
 
-1. Stage all changes:
+1. Analyze the recent changes
+2. Create a concise summary (max 50 chars)
+3. Generate relevant bullet points
+4. Execute the commit script with these arguments:
 
-   ```bash
-   git add .
-   ```
+```bash
+./dev.sh commit "Summary message" "-First bullet point\n-Second bullet point\n-Third bullet point"
+```
 
-2. Create a descriptive commit message that includes:
+The script will:
 
-   - A brief summary of changes (max 50 chars)
-   - Detailed bullet points of specific changes
-   - Any breaking changes or important notes
-     Example:
+1. Show all staged changes
+2. Display the commit message
+3. Commit the changes
+4. Push to main branch
+5. Show success/failure status
 
-   ```bash
-   git commit -m "Update chat UI and fix scrolling
+Example commit message format:
 
-   - Implement auto-scroll to latest message
-   - Fix message order (newest at bottom)
-   - Improve chat input styling
-   - Add shadow to input container"
-   ```
+```
+Update chat UI and fix scrolling
 
-3. Push to the default branch:
+- Implement auto-scroll to latest message
+- Fix message order (newest at bottom)
+- Improve chat input styling
+- Add shadow to input container
+```
 
-   ```bash
-   git push origin main
-   ```
-
-4. Confirm the commit and push were successful
+Note: The script uses color-coded output for better readability and provides feedback at each step.

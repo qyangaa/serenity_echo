@@ -10,6 +10,7 @@ show_help() {
     echo "  ios        Start development on iOS Simulator"
     echo "  clean      Clean the project and pods"
     echo "  test       Run tests"
+    echo "  commit     Create a detailed commit with bullet points"
     echo "  help       Show this help message"
 }
 
@@ -43,6 +44,16 @@ run_tests() {
     flutter test
 }
 
+# Function to run custom commit
+run_commit() {
+    if [ "$#" -lt 2 ]; then
+        echo "Error: Missing commit message or bullet points"
+        echo "Usage: ./dev.sh commit \"<summary>\" \"<bullet_points>\""
+        exit 1
+    fi
+    ./scripts/commit.sh "$2" "$3"
+}
+
 # Main script logic
 case "$1" in
     "web")
@@ -56,6 +67,9 @@ case "$1" in
         ;;
     "test")
         run_tests
+        ;;
+    "commit")
+        run_commit "$@"
         ;;
     "help"|"")
         show_help
