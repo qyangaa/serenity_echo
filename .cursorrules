@@ -171,3 +171,88 @@ Update chat UI and fix scrolling
 ```
 
 Note: The script uses color-coded output for better readability and provides feedback at each step.
+
+# Testing Practices
+
+## What to Test
+
+1. **Business Logic Services (DO Test)**
+
+   - Services that contain core application logic
+   - State management and data transformation
+   - Example: `ChatService`, `SpeechService`
+   - Test all business logic paths and state changes
+
+2. **UI Components (DO Test)**
+
+   - Screen layouts and widget trees
+   - User interactions and navigation
+   - State updates and UI feedback
+   - Example: `HomeScreen`, `ChatJournalScreen`
+
+3. **External Services (DON'T Test)**
+
+   - Services that directly interface with external APIs
+   - Third-party service integrations
+   - Example: `FirestoreStorageService`, `OpenAIService`
+   - Instead, mock these in other tests
+
+4. **Data Models (DON'T Test)**
+   - Simple data container classes
+   - Basic serialization/deserialization
+   - No business logic
+   - Example: `ChatMessage`, `JournalEntry`
+
+## Testing Best Practices
+
+1. **Dependency Injection**
+
+   - Use interfaces for services
+   - Inject dependencies through constructors
+   - Makes services testable and mockable
+
+2. **Mocking**
+
+   - Use `mocktail` for creating mocks
+   - Mock external services and dependencies
+   - Set up default responses in `setUp`
+
+3. **Widget Testing**
+
+   - Test UI elements and layout
+   - Verify user interactions
+   - Check navigation and state changes
+   - Properly set up providers for widget tree
+
+4. **Test Organization**
+
+   ```dart
+   group('Component Name', () {
+     setUp(() {
+       // Common setup
+     });
+
+     test('should do something specific', () {
+       // Arrange
+       // Act
+       // Assert
+     });
+   });
+   ```
+
+5. **Provider Testing**
+
+   - Wrap widgets with necessary providers
+   - Use `.value` constructor for tests
+   - Ensure proper provider hierarchy
+
+6. **Async Testing**
+
+   - Use `async/await` in tests
+   - Properly pump widgets after state changes
+   - Use `pumpAndSettle` for animations
+
+7. **Test Coverage**
+   - Focus on business-critical paths
+   - Test error cases and edge conditions
+   - Don't test external service implementation details
