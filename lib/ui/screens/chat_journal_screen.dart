@@ -40,15 +40,6 @@ class _ChatJournalScreenState extends State<ChatJournalScreen> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           IconButton(
-            icon: const Icon(Icons.save),
-            onPressed: () {
-              _chatService.saveChatSession();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Journal saved!')),
-              );
-            },
-          ),
-          IconButton(
             icon: const Icon(Icons.delete),
             onPressed: () {
               _chatService.clearChat();

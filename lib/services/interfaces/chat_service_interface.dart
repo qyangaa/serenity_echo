@@ -9,9 +9,6 @@ abstract class IChatService extends ChangeNotifier {
   /// Add a new user message and get AI response
   Future<void> addUserMessage(String content);
 
-  /// Save the current chat session
-  Future<void> saveChatSession();
-
-  /// Clear all chat messages
-  void clearChat();
+  /// Clear all chat messages and create a new session
+  Future<void> clearChat();
 }

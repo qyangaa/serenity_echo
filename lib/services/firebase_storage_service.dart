@@ -1,10 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/chat_message.dart';
+import '../models/chat_session.dart';
 import 'interfaces/storage_service_interface.dart';
 
 class FirestoreStorageService implements IStorageService {
   final FirebaseFirestore _firestore;
   final String userId;
+  static const int _maxSessionSize = 500; // Maximum messages per session
 
   FirestoreStorageService({
     FirebaseFirestore? firestore,
@@ -12,68 +13,85 @@ class FirestoreStorageService implements IStorageService {
   }) : _firestore = firestore ?? FirebaseFirestore.instance;
 
   @override
-  Future<void> saveChatSession(List<ChatMessage> messages) async {
-    final batch = _firestore.batch();
-    final sessionRef = _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('chat_sessions')
-        .doc();
-
-    batch.set(sessionRef, {
-      'timestamp': FieldValue.serverTimestamp(),
-      'messageCount': messages.length,
-    });
-
-    for (var message in messages) {
-      final messageRef = sessionRef.collection('messages').doc();
-      batch.set(messageRef, message.toJson());
+  Future<void> saveChatSession(ChatSession session) async {
+    if (session.messages.length > _maxSessionSize) {
+      throw Exception(
+          'Session exceeds maximum size of $_maxSessionSize messages');
     }
 
-    await batch.commit();
+    final sessionRef = session.id.isEmpty
+        ? _firestore
+            .collection('users')
+            .doc(userId)
+            .collection('chat_sessions')
+            .doc()
+        : _firestore
+            .collection('users')
+            .doc(userId)
+            .collection('chat_sessions')
+            .doc(session.id);
+
+    final updatedSession = session.copyWith(
+      id: sessionRef.id,
+      updated: DateTime.now(),
+      messageCount: session.messages.length,
+    );
+
+    await sessionRef.set(updatedSession.toJson());
   }
 
   @override
-  Future<List<ChatMessage>> loadChatSessions() async {
+  Future<ChatSession?> loadCurrentSession() async {
     final querySnapshot = await _firestore
         .collection('users')
         .doc(userId)
         .collection('chat_sessions')
-        .orderBy('timestamp', descending: true)
+        .orderBy('updated', descending: true)
         .limit(1)
         .get();
 
     if (querySnapshot.docs.isEmpty) {
-      return [];
+      return null;
     }
 
-    final sessionDoc = querySnapshot.docs.first;
-    final messagesSnapshot = await sessionDoc.reference
-        .collection('messages')
-        .orderBy('timestamp')
+    final doc = querySnapshot.docs.first;
+    return ChatSession.fromJson(doc.id, doc.data());
+  }
+
+  @override
+  Future<List<ChatSession>> loadAllSessions() async {
+    final querySnapshot = await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('chat_sessions')
+        .orderBy('updated', descending: true)
         .get();
 
-    return messagesSnapshot.docs
-        .map((doc) => ChatMessage.fromJson(doc.data()))
+    return querySnapshot.docs
+        .map((doc) => ChatSession.fromJson(doc.id, doc.data()))
         .toList();
   }
 
   @override
-  Future<void> deleteChatSession(String sessionId) async {
-    final sessionRef = _firestore
+  Future<void> deleteSession(String sessionId) async {
+    await _firestore
         .collection('users')
         .doc(userId)
         .collection('chat_sessions')
-        .doc(sessionId);
+        .doc(sessionId)
+        .delete();
+  }
 
-    final messagesSnapshot = await sessionRef.collection('messages').get();
-    final batch = _firestore.batch();
-
-    for (var doc in messagesSnapshot.docs) {
-      batch.delete(doc.reference);
-    }
-
-    batch.delete(sessionRef);
-    await batch.commit();
+  @override
+  Future<void> updateSessionSummary(String sessionId, String summary) async {
+    await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('chat_sessions')
+        .doc(sessionId)
+        .update({
+      'historySummary': summary,
+      'lastSummarized': DateTime.now().toIso8601String(),
+    });
   }
 }

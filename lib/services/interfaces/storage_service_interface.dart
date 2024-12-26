@@ -1,13 +1,19 @@
-import '../../models/chat_message.dart';
+import '../../models/chat_session.dart';
 
 /// Interface for storage service functionality
 abstract class IStorageService {
-  /// Save a chat session
-  Future<void> saveChatSession(List<ChatMessage> messages);
+  /// Save or update a chat session
+  Future<void> saveChatSession(ChatSession session);
 
-  /// Load chat sessions
-  Future<List<ChatMessage>> loadChatSessions();
+  /// Load the most recent chat session
+  Future<ChatSession?> loadCurrentSession();
+
+  /// Load all chat sessions
+  Future<List<ChatSession>> loadAllSessions();
 
   /// Delete a chat session
-  Future<void> deleteChatSession(String sessionId);
+  Future<void> deleteSession(String sessionId);
+
+  /// Update session summary
+  Future<void> updateSessionSummary(String sessionId, String summary);
 }
