@@ -29,6 +29,11 @@ fi
 summary=$1
 bullet_points=$2
 
+# Format code
+print_color $YELLOW "Formatting code..."
+flutter format .
+dart fix --apply
+
 # Stage all changes
 print_color $YELLOW "Staging all changes..."
 git add .

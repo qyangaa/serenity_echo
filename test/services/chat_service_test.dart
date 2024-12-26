@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:serenity_echo/models/chat_message.dart';
 import 'package:serenity_echo/services/chat_service.dart';
 import '../mocks/mock_ai_service.dart';
 import '../mocks/mock_storage_service.dart';
