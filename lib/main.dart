@@ -1,16 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'services/speech_service.dart';
 import 'services/chat_service.dart';
+import 'services/firebase_storage_service.dart';
+import 'services/openai_service.dart';
+import 'services/interfaces/storage_service_interface.dart';
+import 'services/interfaces/ai_service_interface.dart';
 import 'ui/screens/chat_journal_screen.dart';
+
+// TODO: Replace with proper authentication
+const String _devUserId = 'dev_user_123';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
   runApp(const MyApp());
 }
 
@@ -21,8 +30,26 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => SpeechService()),
-        ChangeNotifierProvider(create: (_) => ChatService()),
+        ChangeNotifierProvider<SpeechService>(
+          create: (_) => SpeechService(),
+        ),
+        Provider<IStorageService>(
+          create: (_) => FirestoreStorageService(userId: _devUserId),
+        ),
+        Provider<IAIService>(
+          create: (_) => OpenAIService(),
+        ),
+        ChangeNotifierProxyProvider2<IStorageService, IAIService, ChatService>(
+          create: (context) => ChatService(
+            storageService: context.read<IStorageService>(),
+            aiService: context.read<IAIService>(),
+          ),
+          update: (_, storageService, aiService, previous) => previous!
+            ..updateDependencies(
+              storageService: storageService,
+              aiService: aiService,
+            ),
+        ),
       ],
       child: MaterialApp(
         title: 'SerenityEcho',
