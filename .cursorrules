@@ -256,3 +256,113 @@ Note: The script uses color-coded output for better readability and provides fee
    - Focus on business-critical paths
    - Test error cases and edge conditions
    - Don't test external service implementation details
+
+# Cursor Implementation Rules
+
+## CBT Implementation Guidelines
+
+### Resource References
+
+When implementing CBT-related features, always reference:
+
+- `cbt_resources/cbt-fundamentals` for core CBT concepts and principles
+- `cbt_resources/cbt-session-structure` for session flow and management
+- `cbt_resources/cbt-journal-prompts` for conversation prompts and guidance
+
+### Phase-Specific Rules
+
+1. **Session State Management**
+
+   - Reference: `cbt-session-structure` "Traditional CBT Session Flow"
+   - Ensure state transitions match documented session phases
+   - Implement all core components of Opening, Middle, and Closing phases
+
+2. **Enhanced AI Interaction**
+
+   - Reference: `cbt-fundamentals` "Core Principles"
+   - Ensure AI responses align with CBT principles
+   - Implement cognitive distortion detection based on documented patterns
+   - Use validated therapeutic language from resources
+
+3. **Conversation Control & Guidance**
+
+   - Reference: `cbt-journal-prompts` "Integration Guidelines"
+   - Follow natural flow transitions as documented
+   - Use recommended response adaptations
+   - Implement progress tracking mechanisms
+
+4. **User Experience Flow**
+
+   - Reference: `cbt-session-structure` "Adaptation for Digital Journaling"
+   - Follow documented daily check-in structure
+   - Implement guided reflection components
+   - Maintain session wrap-up elements
+
+5. **Therapeutic Components**
+
+   - Reference: `cbt-fundamentals` "Evidence-Based Techniques"
+   - Implement all core therapeutic techniques
+   - Follow documented problem-solving frameworks
+   - Include recommended skill-building exercises
+
+6. **Progress Tracking & Analysis**
+   - Reference: All CBT resources for comprehensive tracking
+   - Track progress against documented therapeutic goals
+   - Monitor cognitive distortion patterns
+   - Analyze therapeutic component usage
+
+### Implementation Standards
+
+1. **Code Organization**
+
+   ```dart
+   // Always include reference to CBT resource
+   /// Implementation based on cbt-fundamentals Section X
+   class TherapeuticComponent {
+     // Implementation
+   }
+   ```
+
+2. **Documentation Requirements**
+
+   - Include references to specific CBT resource sections
+   - Document any deviations from standard CBT practice
+   - Explain adaptations for digital format
+
+3. **Testing Guidelines**
+
+   - Test against CBT best practices
+   - Verify therapeutic value of features
+   - Ensure alignment with CBT principles
+
+4. **Review Checklist**
+   - [ ] Verified against CBT resources
+   - [ ] Follows therapeutic principles
+   - [ ] Maintains session structure
+   - [ ] Implements proper guidance
+   - [ ] Includes appropriate prompts
+
+### Quality Assurance
+
+1. **Therapeutic Integrity**
+
+   - Ensure features align with CBT principles
+   - Maintain professional therapeutic standards
+   - Follow evidence-based practices
+
+2. **User Safety**
+
+   - Implement crisis detection
+   - Include appropriate disclaimers
+   - Provide professional resource referrals
+
+3. **Progress Monitoring**
+   - Track therapeutic goal progress
+   - Monitor session structure adherence
+   - Evaluate intervention effectiveness
+
+### Resource Updates
+
+- Keep CBT resources updated with latest research
+- Document any modifications to standard practices
+- Maintain alignment between code and resources
