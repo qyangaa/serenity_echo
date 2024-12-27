@@ -21,4 +21,7 @@ abstract class IChatService extends ChangeNotifier {
 
   /// Generate a reflection prompt based on the current conversation
   Future<String> generateReflectionPrompt();
+
+  /// Get emotional trends
+  Map<String, double> getEmotionalTrends();
 }

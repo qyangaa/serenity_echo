@@ -48,6 +48,16 @@ void main() {
     when(() => mockStorageService.updateSessionSummary(any(), any()))
         .thenAnswer((_) async => {});
 
+    // Add default emotion analysis mock
+    when(() => mockAIService.analyzeEmotion(any()))
+        .thenAnswer((_) async => EmotionAnalysis(
+              emotionScores: {
+                'neutral': 1.0,
+              },
+              primaryEmotion: 'neutral',
+              intensity: 'low',
+            ));
+
     chatService = ChatService(
       aiService: mockAIService,
       storageService: mockStorageService,
@@ -91,7 +101,8 @@ void main() {
       await chatService.addUserMessage(message2);
 
       // Verify that we're using the same session
-      verify(() => mockStorageService.saveChatSession(any())).called(2);
+      // Each message results in 2 saves: one for emotion trends, one for the message
+      verify(() => mockStorageService.saveChatSession(any())).called(4);
       verify(() => mockStorageService.loadCurrentSession()).called(1);
     });
   });
@@ -114,6 +125,14 @@ void main() {
       expect(chatService.messages[0].isUser, isTrue);
       expect(chatService.messages[1].content, equals(aiResponse));
       expect(chatService.messages[1].isUser, isFalse);
+
+      // Verify both emotion analysis and response generation
+      verify(() => mockAIService.analyzeEmotion(userMessage)).called(1);
+      verify(() => mockAIService.getResponse(
+            userMessage,
+            conversationSummary: any(named: 'conversationSummary'),
+            recentMessages: any(named: 'recentMessages'),
+          )).called(1);
     });
 
     test('should generate summary after reaching message threshold', () async {
@@ -292,8 +311,7 @@ void main() {
       when(() => mockAIService.analyzeEmotion(userMessage))
           .thenAnswer((_) async => expectedEmotions);
 
-      // Act
-      await chatService.addUserMessage(userMessage);
+      // Act - only call analyzeEmotions, don't add message
       final emotions = await chatService.analyzeEmotions(userMessage);
 
       // Assert
@@ -359,7 +377,6 @@ void main() {
       const firstMessage = 'I started a new project';
       const secondMessage = 'It\'s going well';
       const contextAwareResponse = 'That\'s great to hear about your project!';
-      const summary = 'User started a new project and is making good progress.';
 
       when(() => mockAIService.getResponse(
             firstMessage,
@@ -371,8 +388,6 @@ void main() {
             conversationSummary: any(named: 'conversationSummary'),
             recentMessages: any(named: 'recentMessages'),
           )).thenAnswer((_) async => contextAwareResponse);
-      when(() => mockAIService.generateSummary(any()))
-          .thenAnswer((_) async => summary);
 
       // Act
       await chatService.addUserMessage(firstMessage);
@@ -389,6 +404,10 @@ void main() {
             conversationSummary: any(named: 'conversationSummary'),
             recentMessages: any(named: 'recentMessages'),
           )).called(1);
+
+      // Verify emotion analysis was called for both messages
+      verify(() => mockAIService.analyzeEmotion(firstMessage)).called(1);
+      verify(() => mockAIService.analyzeEmotion(secondMessage)).called(1);
     });
 
     test('should use conversation summary in responses', () async {
@@ -471,6 +490,10 @@ void main() {
           chatService.messages[2].timestamp
               .isAfter(chatService.messages[0].timestamp),
           isTrue);
+
+      // Verify emotion analysis was called for both messages
+      verify(() => mockAIService.analyzeEmotion(message1)).called(1);
+      verify(() => mockAIService.analyzeEmotion(message2)).called(1);
     });
 
     test('should persist session across service restarts', () async {
@@ -680,6 +703,119 @@ void main() {
         expect(chatService.messages[i * 2].isUser, isTrue);
         expect(chatService.messages[i * 2 + 1].isUser, isFalse);
       }
+    });
+  });
+
+  group('ChatService Emotional Trends', () {
+    test('should initialize empty emotional trends for new session', () {
+      expect(chatService.getEmotionalTrends(), isEmpty);
+    });
+
+    test('should update emotional trends with new messages', () async {
+      // Arrange
+      const message1 = 'I feel happy today!';
+      const message2 = 'I am a bit anxious about tomorrow.';
+
+      final emotion1 = EmotionAnalysis(
+        emotionScores: {
+          'joy': 0.8,
+          'anxiety': 0.1,
+        },
+        primaryEmotion: 'joy',
+        intensity: 'high',
+      );
+
+      final emotion2 = EmotionAnalysis(
+        emotionScores: {
+          'joy': 0.2,
+          'anxiety': 0.7,
+        },
+        primaryEmotion: 'anxiety',
+        intensity: 'high',
+      );
+
+      // Override default mock for specific messages
+      when(() => mockAIService.analyzeEmotion(message1))
+          .thenAnswer((_) async => emotion1);
+      when(() => mockAIService.analyzeEmotion(message2))
+          .thenAnswer((_) async => emotion2);
+
+      // Act
+      await chatService.addUserMessage(message1);
+      var trendsAfterFirstMessage = chatService.getEmotionalTrends();
+
+      await chatService.addUserMessage(message2);
+      var trendsAfterSecondMessage = chatService.getEmotionalTrends();
+
+      // Assert - First message should set initial values
+      expect(trendsAfterFirstMessage['joy'], closeTo(0.56, 0.01)); // 0.8 * 0.7
+      expect(
+          trendsAfterFirstMessage['anxiety'], closeTo(0.07, 0.01)); // 0.1 * 0.7
+
+      // Second message updates with exponential moving average
+      expect(trendsAfterSecondMessage['joy'],
+          closeTo(0.31, 0.01)); // 0.2 * 0.7 + 0.56 * 0.3
+      expect(trendsAfterSecondMessage['anxiety'],
+          closeTo(0.51, 0.01)); // 0.7 * 0.7 + 0.07 * 0.3
+    });
+
+    test('should persist emotional trends across service restarts', () async {
+      // Arrange
+      const message = 'I feel excited!';
+      final emotion = EmotionAnalysis(
+        emotionScores: {
+          'joy': 0.9,
+          'excitement': 0.8,
+        },
+        primaryEmotion: 'joy',
+        intensity: 'high',
+      );
+
+      // Override default mock for specific message
+      when(() => mockAIService.analyzeEmotion(message))
+          .thenAnswer((_) async => emotion);
+
+      // Act
+      await chatService.addUserMessage(message);
+      final trendsBeforeRestart = chatService.getEmotionalTrends();
+
+      // Create mock session with the trends
+      mockSession = mockSession.copyWith(
+        emotionalTrends: trendsBeforeRestart,
+      );
+      when(() => mockStorageService.loadCurrentSession())
+          .thenAnswer((_) async => mockSession);
+
+      // Simulate service restart
+      chatService = ChatService(
+        aiService: mockAIService,
+        storageService: mockStorageService,
+      );
+      await Future.delayed(Duration.zero); // Wait for initialization
+
+      // Assert
+      final trendsAfterRestart = chatService.getEmotionalTrends();
+      expect(trendsAfterRestart, equals(trendsBeforeRestart));
+    });
+
+    test('should handle empty emotion scores gracefully', () async {
+      // Arrange
+      const message = 'Neutral message';
+      final emotion = EmotionAnalysis(
+        emotionScores: {},
+        primaryEmotion: 'neutral',
+        intensity: 'low',
+      );
+
+      when(() => mockAIService.analyzeEmotion(message))
+          .thenAnswer((_) async => emotion);
+
+      // Act
+      await chatService.addUserMessage(message);
+      final trends = chatService.getEmotionalTrends();
+
+      // Assert
+      expect(trends, isEmpty);
     });
   });
 }

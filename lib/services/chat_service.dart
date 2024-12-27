@@ -98,6 +98,35 @@ class ChatService extends ChangeNotifier implements IChatService {
     return allMessages.sublist(startIndex);
   }
 
+  Future<void> _updateEmotionalTrends(EmotionAnalysis analysis) async {
+    try {
+      // Get current trends or initialize new ones
+      final currentTrends = _currentSession?.emotionalTrends ?? {};
+
+      // Update trends with new emotion scores
+      final updatedTrends = Map<String, double>.from(currentTrends);
+      analysis.emotionScores.forEach((emotion, score) {
+        final currentScore = updatedTrends[emotion] ?? 0.0;
+        // Use exponential moving average with 0.7 weight for new values
+        updatedTrends[emotion] = (0.7 * score) + (0.3 * currentScore);
+      });
+
+      // Update session with new trends
+      _currentSession = _currentSession?.copyWith(
+        emotionalTrends: updatedTrends,
+      );
+
+      // Save to storage
+      await _storageService.saveChatSession(_currentSession!);
+
+      notifyListeners();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error updating emotional trends: $e');
+      }
+    }
+  }
+
   @override
   Future<void> addUserMessage(String content) async {
     try {
@@ -127,6 +156,10 @@ class ChatService extends ChangeNotifier implements IChatService {
         _currentSession = ChatSession.create();
         await _storageService.saveChatSession(_currentSession!);
       }
+
+      // Analyze emotions in the message
+      final emotionAnalysis = await _aiService.analyzeEmotion(content);
+      await _updateEmotionalTrends(emotionAnalysis);
 
       // Add user message
       final userMessage = ChatMessage.createUserMessage(content);
@@ -285,5 +318,10 @@ class ChatService extends ChangeNotifier implements IChatService {
       }
       return true; // Default to allowing content if moderation fails
     }
+  }
+
+  @override
+  Map<String, double> getEmotionalTrends() {
+    return Map<String, double>.from(_currentSession?.emotionalTrends ?? {});
   }
 }
