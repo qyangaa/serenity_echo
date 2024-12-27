@@ -4,12 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
 import 'services/speech_service.dart';
-import 'services/chat_service.dart';
 import 'services/firebase_storage_service.dart';
-import 'services/openai_service.dart';
 import 'services/interfaces/storage_service_interface.dart';
-import 'services/interfaces/ai_service_interface.dart';
-import 'ui/screens/chat_journal_screen.dart';
 
 // TODO: Replace with proper authentication
 const String _devUserId = 'dev_user_123';
@@ -41,22 +37,6 @@ class MyApp extends StatelessWidget {
         Provider<IStorageService>(
           create: (_) => FirestoreStorageService(userId: _devUserId),
         ),
-        Provider<IAIService>(
-          create: (_) => OpenAIService(
-            apiKey: dotenv.env['OPENAI_API_KEY'] ?? '',
-          ),
-        ),
-        ChangeNotifierProxyProvider2<IStorageService, IAIService, ChatService>(
-          create: (context) => ChatService(
-            storageService: context.read<IStorageService>(),
-            aiService: context.read<IAIService>(),
-          ),
-          update: (_, storageService, aiService, previous) => previous!
-            ..updateDependencies(
-              storageService: storageService,
-              aiService: aiService,
-            ),
-        ),
       ],
       child: MaterialApp(
         title: 'SerenityEcho',
@@ -67,11 +47,7 @@ class MyApp extends StatelessWidget {
           ),
           useMaterial3: true,
         ),
-        routes: {
-          '/': (context) => const HomeScreen(),
-          '/chat': (context) => const ChatJournalScreen(),
-        },
-        initialRoute: '/',
+        home: const HomeScreen(),
       ),
     );
   }
@@ -117,47 +93,13 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 48),
             ElevatedButton.icon(
               key: const Key('start_journaling_button'),
-              onPressed: () async {
-                try {
-                  // Show loading indicator
-                  showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (context) => const Center(
-                      child: CircularProgressIndicator(
-                        key: Key('loading_indicator'),
-                      ),
-                    ),
-                  );
-
-                  // Pre-load the session
-                  final success =
-                      await context.read<ChatService>().initializeSession();
-                  if (!success) {
-                    throw Exception('Failed to initialize chat session');
-                  }
-
-                  // Hide loading indicator
-                  if (!context.mounted) return;
-                  Navigator.pop(context);
-
-                  // Navigate to chat screen
-                  await Navigator.pushNamed(context, '/chat');
-                } catch (e) {
-                  // Hide loading indicator if shown
-                  if (context.mounted && Navigator.canPop(context)) {
-                    Navigator.pop(context);
-                  }
-
-                  // Show error message
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error: ${e.toString()}'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
+              onPressed: () {
+                // TODO: Implement new chat screen with AI Toolkit
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Coming soon with AI Toolkit integration!'),
+                  ),
+                );
               },
               icon: const Icon(Icons.chat),
               label: const Text('Start Journaling'),
