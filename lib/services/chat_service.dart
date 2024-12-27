@@ -9,7 +9,10 @@ class ChatService extends ChangeNotifier implements IChatService {
   IAIService _aiService;
   IStorageService _storageService;
   ChatSession? _currentSession;
-  static const int _summarizeAfterMessages = 10;
+  static const int _contextWindowSize =
+      10; // Increased from 5 to 10 for better context
+  static const int _summaryThreshold =
+      8; // New threshold for when to generate summaries
   bool _isLoading = false;
 
   ChatService({
@@ -19,6 +22,10 @@ class ChatService extends ChangeNotifier implements IChatService {
         _storageService = storageService {
     _loadCurrentSession();
   }
+
+  // Add getter for current summary
+  String? get currentSummary => _currentSession?.historySummary;
+  DateTime? get lastSummarized => _currentSession?.lastSummarized;
 
   void updateDependencies({
     IAIService? aiService,
@@ -65,6 +72,31 @@ class ChatService extends ChangeNotifier implements IChatService {
   @override
   List<ChatMessage> get messages => _currentSession?.messages ?? [];
 
+  /// Loads or creates the current chat session.
+  /// Returns true if successful, false otherwise.
+  Future<bool> initializeSession() async {
+    try {
+      await _loadCurrentSession();
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error initializing session: $e');
+      }
+      return false;
+    }
+  }
+
+  List<ChatMessage> _getRecentMessages() {
+    if (_currentSession == null || _currentSession!.messages.isEmpty) {
+      return [];
+    }
+    final allMessages = _currentSession!.messages;
+    final startIndex = allMessages.length > _contextWindowSize
+        ? allMessages.length - _contextWindowSize
+        : 0;
+    return allMessages.sublist(startIndex);
+  }
+
   @override
   Future<void> addUserMessage(String content) async {
     try {
@@ -106,8 +138,12 @@ class ChatService extends ChangeNotifier implements IChatService {
       );
       notifyListeners();
 
-      // Get AI response
-      final response = await _aiService.getResponse(content);
+      // Get AI response with context
+      final response = await _aiService.getResponse(
+        content,
+        conversationSummary: _currentSession!.historySummary,
+        recentMessages: _getRecentMessages(),
+      );
       final aiMessage = ChatMessage.createAIMessage(response);
 
       // Update session with AI message
@@ -124,13 +160,11 @@ class ChatService extends ChangeNotifier implements IChatService {
         print('Updated session ${_currentSession!.id} with new messages');
       }
 
-      // Check if we need to summarize
-      if (finalMessages.length >= _summarizeAfterMessages &&
+      // Check if we need to summarize after adding new messages
+      if (_currentSession!.messages.length >= _summaryThreshold &&
           (_currentSession!.lastSummarized == null ||
-              DateTime.now()
-                      .difference(_currentSession!.lastSummarized!)
-                      .inMinutes >
-                  30)) {
+              DateTime.now().difference(_currentSession!.lastSummarized!) >
+                  const Duration(minutes: 5))) {
         await _updateSummary();
       }
     } catch (e) {
@@ -151,13 +185,22 @@ class ChatService extends ChangeNotifier implements IChatService {
 
   Future<void> _updateSummary() async {
     try {
+      // Get the last _contextWindowSize messages for summarization
+      final messagesToSummarize = _getRecentMessages();
       final summary = await _aiService.generateSummary(
-        messages.map((m) => m.content).toList(),
+        messagesToSummarize.map((m) => m.content).toList(),
       );
       await _storageService.updateSessionSummary(_currentSession!.id, summary);
+      // Update local session with new summary
+      _currentSession = _currentSession!.copyWith(
+        historySummary: summary,
+        lastSummarized: DateTime.now(),
+      );
       if (kDebugMode) {
         print('Updated summary for session ${_currentSession!.id}');
+        print('New summary: $summary');
       }
+      notifyListeners();
     } catch (e) {
       if (kDebugMode) {
         print('Error updating summary: $e');

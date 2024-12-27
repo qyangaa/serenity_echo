@@ -3,7 +3,11 @@ import '../../models/chat_message.dart';
 /// Interface for AI service functionality
 abstract class IAIService {
   /// Get a response from the AI based on user input
-  Future<String> getResponse(String userInput);
+  Future<String> getResponse(
+    String userInput, {
+    String? conversationSummary,
+    List<ChatMessage>? recentMessages,
+  });
 
   /// Generate a summary of the chat history
   Future<String> generateSummary(List<String> messages);

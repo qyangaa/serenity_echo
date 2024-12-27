@@ -25,7 +25,62 @@ void main() {
   });
 
   group('OpenAIService', () {
-    test('getResponse returns AI response for user input', () async {
+    test('getResponse returns AI response with context and summary', () async {
+      // Arrange
+      const expectedResponse = 'This is a test response';
+      const summary = 'Previous conversation summary';
+      final recentMessages = [
+        ChatMessage(
+          content: 'Previous message',
+          isUser: true,
+          id: 'test-id-1',
+          timestamp: DateTime.now(),
+        ),
+      ];
+
+      when(() => mockHttpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          )).thenAnswer((_) async => http.Response(
+            jsonEncode({
+              'choices': [
+                {
+                  'message': {'content': expectedResponse}
+                }
+              ]
+            }),
+            200,
+          ));
+
+      // Act
+      final response = await openAIService.getResponse(
+        'Hello',
+        conversationSummary: summary,
+        recentMessages: recentMessages,
+      );
+
+      // Assert
+      expect(response, expectedResponse);
+      verify(() => mockHttpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: predicate((String body) {
+              final json = jsonDecode(body);
+              final messages = json['messages'] as List;
+              return messages.any((m) => m['content']
+                      .toString()
+                      .contains('Previous conversation summary')) &&
+                  messages.any((m) => m['content']
+                      .toString()
+                      .contains('Recent conversation context')) &&
+                  messages
+                      .any((m) => m['content'].toString().contains('Hello'));
+            }),
+          )).called(1);
+    });
+
+    test('getResponse handles missing context gracefully', () async {
       // Arrange
       const expectedResponse = 'This is a test response';
       when(() => mockHttpClient.post(
@@ -44,14 +99,57 @@ void main() {
           ));
 
       // Act
-      final response = await openAIService.getResponse('Hello');
+      final response = await openAIService.getResponse(
+        'Hello',
+        conversationSummary: null,
+        recentMessages: null,
+      );
 
       // Assert
       expect(response, expectedResponse);
       verify(() => mockHttpClient.post(
             any(),
             headers: any(named: 'headers'),
-            body: contains('"content":"Hello"'),
+            body: predicate((String body) {
+              final json = jsonDecode(body);
+              final messages = json['messages'] as List;
+              return messages.length ==
+                      2 && // Only system prompt and user message
+                  messages
+                      .any((m) => m['content'].toString().contains('Hello'));
+            }),
+          )).called(1);
+    });
+
+    test('getResponse uses increased max_tokens', () async {
+      // Arrange
+      const expectedResponse = 'This is a test response';
+      when(() => mockHttpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          )).thenAnswer((_) async => http.Response(
+            jsonEncode({
+              'choices': [
+                {
+                  'message': {'content': expectedResponse}
+                }
+              ]
+            }),
+            200,
+          ));
+
+      // Act
+      await openAIService.getResponse('Hello');
+
+      // Assert
+      verify(() => mockHttpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: predicate((String body) {
+              final json = jsonDecode(body);
+              return json['max_tokens'] == 250;
+            }),
           )).called(1);
     });
 

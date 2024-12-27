@@ -16,6 +16,7 @@ class _ChatJournalScreenState extends State<ChatJournalScreen> {
   late SpeechService _speechService;
   late ChatService _chatService;
   bool _isInitialized = false;
+  bool _showDebugInfo = false;
 
   @override
   void initState() {
@@ -40,6 +41,14 @@ class _ChatJournalScreenState extends State<ChatJournalScreen> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           IconButton(
+            icon: const Icon(Icons.bug_report),
+            onPressed: () {
+              setState(() {
+                _showDebugInfo = !_showDebugInfo;
+              });
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.delete),
             onPressed: () {
               _chatService.clearChat();
@@ -50,6 +59,30 @@ class _ChatJournalScreenState extends State<ChatJournalScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            if (_showDebugInfo)
+              Consumer<ChatService>(
+                builder: (context, chatService, _) {
+                  return Container(
+                    padding: const EdgeInsets.all(8.0),
+                    color: Colors.grey[200],
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Current Summary:',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        Text(chatService.currentSummary ?? 'No summary yet'),
+                        if (chatService.lastSummarized != null)
+                          Text(
+                            'Last Updated: ${chatService.lastSummarized!.toLocal()}',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             Expanded(
               child: Consumer<ChatService>(
                 builder: (context, chatService, _) {

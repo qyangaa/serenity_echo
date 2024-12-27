@@ -67,7 +67,11 @@ class MyApp extends StatelessWidget {
           ),
           useMaterial3: true,
         ),
-        home: const HomeScreen(),
+        routes: {
+          '/': (context) => const HomeScreen(),
+          '/chat': (context) => const ChatJournalScreen(),
+        },
+        initialRoute: '/',
       ),
     );
   }
@@ -94,7 +98,8 @@ class HomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             const Text(
-              'Welcome to SerenityEcho',
+              'SerenityEcho',
+              key: Key('home_title'),
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -103,6 +108,7 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 16),
             const Text(
               'Your AI-powered journaling companion',
+              key: Key('home_subtitle'),
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey,
@@ -110,13 +116,48 @@ class HomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 48),
             ElevatedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ChatJournalScreen(),
-                  ),
-                );
+              key: const Key('start_journaling_button'),
+              onPressed: () async {
+                try {
+                  // Show loading indicator
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => const Center(
+                      child: CircularProgressIndicator(
+                        key: Key('loading_indicator'),
+                      ),
+                    ),
+                  );
+
+                  // Pre-load the session
+                  final success =
+                      await context.read<ChatService>().initializeSession();
+                  if (!success) {
+                    throw Exception('Failed to initialize chat session');
+                  }
+
+                  // Hide loading indicator
+                  if (!context.mounted) return;
+                  Navigator.pop(context);
+
+                  // Navigate to chat screen
+                  await Navigator.pushNamed(context, '/chat');
+                } catch (e) {
+                  // Hide loading indicator if shown
+                  if (context.mounted && Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  }
+
+                  // Show error message
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: ${e.toString()}'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               },
               icon: const Icon(Icons.chat),
               label: const Text('Start Journaling'),

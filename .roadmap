@@ -38,7 +38,7 @@
    - ⏳ Follow-up questions
    - ⏳ Emotion analysis
    - ⏳ Reflection prompts
-   - ⏳ Content moderation
+   - ⏳ Content moderation with cognitive behavior therapy
    - ⏳ Daily summaries
    - ⏳ Pattern recognition
 
@@ -113,21 +113,3 @@
 6. Add emotional analysis and insights
 7. Polish UI and add final touches
 
-## Custom Commit Process
-
-1. **Pre-Commit Review**
-
-   - Review changes made
-   - Update .roadmap if features were completed or added
-   - Document any new requirements or considerations
-
-2. **Commit Preparation**
-
-   - Run `flutter format .`
-   - Run `dart fix --apply`
-   - Stage all changes
-
-3. **Commit Execution**
-   ```bash
-   ./dev.sh commit "Commit message" "- Bullet point 1\n- Bullet point 2\n- Bullet point 3"
-   ```

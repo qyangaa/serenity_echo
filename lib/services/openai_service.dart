@@ -22,26 +22,57 @@ class OpenAIService implements IAIService {
       };
 
   @override
-  Future<String> getResponse(String userInput) async {
+  Future<String> getResponse(
+    String userInput, {
+    String? conversationSummary,
+    List<ChatMessage>? recentMessages,
+  }) async {
     try {
+      final messages = [
+        {
+          'role': 'system',
+          'content':
+              '''You are a supportive and empathetic AI journaling companion. 
+Help users process their thoughts and feelings while maintaining a warm, understanding tone.
+You have access to recent messages and a summary of the conversation history.
+When users ask about previous conversations or your memory, refer to this context to provide accurate responses.
+Always acknowledge your ability to reference previous parts of the conversation when relevant.''',
+        },
+      ];
+
+      // Add conversation summary if available
+      if (conversationSummary != null) {
+        messages.add({
+          'role': 'system',
+          'content': '''Previous conversation summary: $conversationSummary
+When referring to this history, mention that this is from our earlier conversation today.''',
+        });
+      }
+
+      // Add recent messages for immediate context
+      if (recentMessages != null && recentMessages.isNotEmpty) {
+        messages.add({
+          'role': 'system',
+          'content': '''Recent conversation context:
+${recentMessages.map((m) => "${m.isUser ? "User" : "Assistant"}: ${m.content}").join("\n")}
+Use this recent context to maintain conversation continuity.''',
+        });
+      }
+
+      // Add current user input
+      messages.add({
+        'role': 'user',
+        'content': userInput,
+      });
+
       final response = await _client.post(
         Uri.parse('$_baseUrl/chat/completions'),
         headers: _headers,
         body: jsonEncode({
           'model': model,
-          'messages': [
-            {
-              'role': 'system',
-              'content':
-                  'You are a supportive and empathetic AI journaling companion. Help users process their thoughts and feelings while maintaining a warm, understanding tone.',
-            },
-            {
-              'role': 'user',
-              'content': userInput,
-            },
-          ],
+          'messages': messages,
           'temperature': 0.7,
-          'max_tokens': 150,
+          'max_tokens': 250, // Increased to allow for more detailed responses
         }),
       );
 
