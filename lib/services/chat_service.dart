@@ -1,8 +1,9 @@
 import 'package:flutter/foundation.dart';
 import '../models/chat_message.dart';
 import '../models/chat_session.dart';
-import 'interfaces/chat_service_interface.dart';
+import '../models/emotion_analysis.dart';
 import 'interfaces/ai_service_interface.dart';
+import 'interfaces/chat_service_interface.dart';
 import 'interfaces/storage_service_interface.dart';
 
 class ChatService extends ChangeNotifier implements IChatService {
@@ -241,21 +242,21 @@ class ChatService extends ChangeNotifier implements IChatService {
   }
 
   @override
-  Future<Map<String, double>> analyzeEmotions(String message) async {
+  Future<EmotionAnalysis> analyzeEmotions(String message) async {
     try {
       return await _aiService.analyzeEmotion(message);
     } catch (e) {
       if (kDebugMode) {
         print('Error analyzing emotions: $e');
       }
-      return {
+      return EmotionAnalysis.fromMap({
         'joy': 0.0,
         'sadness': 0.0,
         'anger': 0.0,
         'fear': 0.0,
         'surprise': 0.0,
         'love': 0.0,
-      };
+      });
     }
   }
 

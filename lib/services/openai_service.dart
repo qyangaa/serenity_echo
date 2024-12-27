@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/chat_message.dart';
+import '../models/emotion_analysis.dart';
 import 'interfaces/ai_service_interface.dart';
 
 class OpenAIService implements IAIService {
@@ -129,7 +130,7 @@ Use this recent context to maintain conversation continuity.''',
   }
 
   @override
-  Future<Map<String, double>> analyzeEmotion(String message) async {
+  Future<EmotionAnalysis> analyzeEmotion(String message) async {
     try {
       final response = await _client.post(
         Uri.parse('$_baseUrl/chat/completions'),
@@ -156,7 +157,10 @@ Use this recent context to maintain conversation continuity.''',
         final data = jsonDecode(response.body);
         final emotionJson = data['choices'][0]['message']['content'];
         final emotions = jsonDecode(emotionJson) as Map<String, dynamic>;
-        return emotions.map((key, value) => MapEntry(key, value.toDouble()));
+        final emotionScores = emotions.map(
+          (key, value) => MapEntry(key, (value as num).toDouble()),
+        );
+        return EmotionAnalysis.fromMap(emotionScores);
       } else {
         throw Exception('Failed to analyze emotions: ${response.statusCode}');
       }
@@ -164,14 +168,14 @@ Use this recent context to maintain conversation continuity.''',
       if (kDebugMode) {
         print('Error analyzing emotions: $e');
       }
-      return {
+      return EmotionAnalysis.fromMap({
         'joy': 0.0,
         'sadness': 0.0,
         'anger': 0.0,
         'fear': 0.0,
         'surprise': 0.0,
         'love': 0.0,
-      };
+      });
     }
   }
 

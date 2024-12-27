@@ -1,4 +1,5 @@
 import '../../models/chat_message.dart';
+import '../../models/emotion_analysis.dart';
 
 /// Interface for AI service functionality
 abstract class IAIService {
@@ -13,7 +14,7 @@ abstract class IAIService {
   Future<String> generateSummary(List<String> messages);
 
   /// Get emotional analysis of the message
-  Future<Map<String, double>> analyzeEmotion(String message);
+  Future<EmotionAnalysis> analyzeEmotion(String message);
 
   /// Generate follow-up questions based on the conversation
   Future<List<String>> generateFollowUpQuestions(

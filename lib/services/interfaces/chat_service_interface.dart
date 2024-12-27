@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../../models/chat_message.dart';
+import '../../models/emotion_analysis.dart';
 
 /// Interface for chat service functionality
 abstract class IChatService extends ChangeNotifier {
@@ -16,7 +17,7 @@ abstract class IChatService extends ChangeNotifier {
   Future<List<String>> generateFollowUpQuestions();
 
   /// Analyze emotions in a message
-  Future<Map<String, double>> analyzeEmotions(String message);
+  Future<EmotionAnalysis> analyzeEmotions(String message);
 
   /// Generate a reflection prompt based on the current conversation
   Future<String> generateReflectionPrompt();

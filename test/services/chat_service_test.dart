@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:serenity_echo/models/chat_message.dart';
 import 'package:serenity_echo/models/chat_session.dart';
+import 'package:serenity_echo/models/emotion_analysis.dart';
 import 'package:serenity_echo/services/chat_service.dart';
 import '../mocks/mock_ai_service.dart';
 import '../mocks/mock_storage_service.dart';
@@ -274,7 +275,7 @@ void main() {
     test('should analyze emotions in user messages', () async {
       // Arrange
       const userMessage = 'I feel really happy today!';
-      final expectedEmotions = {
+      final emotionScores = {
         'joy': 0.9,
         'sadness': 0.0,
         'anger': 0.0,
@@ -282,6 +283,11 @@ void main() {
         'surprise': 0.2,
         'love': 0.5,
       };
+      final expectedEmotions = EmotionAnalysis(
+        emotionScores: emotionScores,
+        primaryEmotion: 'joy',
+        intensity: 'high',
+      );
 
       when(() => mockAIService.analyzeEmotion(userMessage))
           .thenAnswer((_) async => expectedEmotions);
@@ -503,6 +509,177 @@ void main() {
       verify(() => mockStorageService.loadCurrentSession()).called(2);
       expect(chatService.messages, isNotEmpty);
       expect(chatService.messages.first.content, equals(userMessage));
+    });
+  });
+
+  group('ChatService Context Window', () {
+    test(
+        'should maintain exactly 10 messages in context window when more messages exist',
+        () async {
+      // Add more than 10 messages
+      for (var i = 0; i < 15; i++) {
+        await chatService.addUserMessage('Message $i');
+      }
+
+      // Verify the context window size in the last AI call
+      final captured = verify(() => mockAIService.getResponse(
+            any(),
+            conversationSummary: any(named: 'conversationSummary'),
+            recentMessages: captureAny(named: 'recentMessages'),
+          )).captured;
+
+      final recentMessages = captured.last as List<ChatMessage>;
+      expect(recentMessages.length, equals(10),
+          reason: 'Context window should be exactly 10 messages');
+    });
+  });
+
+  group('ChatService Summary Generation', () {
+    test('should generate summary after exactly 8 messages', () async {
+      var summaryGenerationCount = 0;
+      when(() => mockAIService.generateSummary(any())).thenAnswer((_) {
+        summaryGenerationCount++;
+        return Future.value("Test Summary");
+      });
+
+      // Add 7 messages (will result in 14 total with AI responses)
+      for (var i = 0; i < 7; i++) {
+        await chatService.addUserMessage('Message $i');
+      }
+      expect(summaryGenerationCount, equals(1),
+          reason: 'Summary should be generated after 8 messages');
+    });
+
+    test('should respect 5-minute cooldown for summary generation', () async {
+      // Setup mock session with recent summary
+      final recentTime = DateTime.now().subtract(const Duration(minutes: 3));
+      mockSession = mockSession.copyWith(
+        historySummary: 'Recent summary',
+        lastSummarized: recentTime,
+      );
+
+      when(() => mockStorageService.loadCurrentSession())
+          .thenAnswer((_) async => mockSession);
+
+      chatService = ChatService(
+        aiService: mockAIService,
+        storageService: mockStorageService,
+      );
+
+      // Add enough messages to trigger summary
+      for (var i = 0; i < 5; i++) {
+        await chatService.addUserMessage('Message $i');
+      }
+
+      // Verify summary was not generated due to cooldown
+      verifyNever(() => mockAIService.generateSummary(any()));
+    });
+
+    test('should generate summary after cooldown period', () async {
+      // Setup mock session with old summary
+      final oldTime = DateTime.now().subtract(const Duration(minutes: 6));
+      mockSession = mockSession.copyWith(
+        historySummary: 'Old summary',
+        lastSummarized: oldTime,
+      );
+
+      when(() => mockStorageService.loadCurrentSession())
+          .thenAnswer((_) async => mockSession);
+
+      chatService = ChatService(
+        aiService: mockAIService,
+        storageService: mockStorageService,
+      );
+
+      // Add enough messages to trigger summary
+      for (var i = 0; i < 5; i++) {
+        await chatService.addUserMessage('Message $i');
+      }
+
+      // Verify summary was generated after cooldown
+      verify(() => mockAIService.generateSummary(any())).called(1);
+    });
+  });
+
+  group('ChatService Content Moderation', () {
+    test('should handle inappropriate content with error message', () async {
+      when(() => mockAIService.moderateContent(any()))
+          .thenAnswer((_) async => false);
+
+      await chatService.addUserMessage('Inappropriate content');
+
+      // Verify no AI response was generated
+      verifyNever(() => mockAIService.getResponse(any(),
+          conversationSummary: any(named: 'conversationSummary'),
+          recentMessages: any(named: 'recentMessages')));
+
+      // Verify error message was added
+      expect(chatService.messages.last.content,
+          contains('cannot process that content'),
+          reason: 'Should show moderation error message');
+    });
+
+    test('should process safe content normally', () async {
+      when(() => mockAIService.moderateContent(any()))
+          .thenAnswer((_) async => true);
+
+      await chatService.addUserMessage('Safe content');
+
+      // Verify AI response was generated
+      verify(() => mockAIService.getResponse(any(),
+          conversationSummary: any(named: 'conversationSummary'),
+          recentMessages: any(named: 'recentMessages'))).called(1);
+    });
+  });
+
+  group('ChatService Session Management', () {
+    test('should handle null session gracefully', () async {
+      // Setup sequence of responses
+      var callCount = 0;
+      when(() => mockStorageService.loadCurrentSession()).thenAnswer((_) async {
+        callCount++;
+        if (callCount == 1) return null;
+        return mockSession;
+      });
+
+      // Create new chat service instance
+      chatService = ChatService(
+        aiService: mockAIService,
+        storageService: mockStorageService,
+      );
+
+      // Wait for initialization
+      await Future.delayed(Duration.zero);
+
+      // Try to add a message
+      await chatService.addUserMessage('Test message');
+
+      // Wait for all async operations
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      // Verify session was created and message was added
+      verify(() => mockStorageService.saveChatSession(any()))
+          .called(greaterThan(1));
+      expect(chatService.messages.length, equals(2),
+          reason: 'Should have user message and AI response');
+    });
+
+    test('should maintain session state across message additions', () async {
+      final messages = ['First message', 'Second message', 'Third message'];
+
+      for (final message in messages) {
+        await chatService.addUserMessage(message);
+      }
+
+      // Each message should result in both user message and AI response
+      expect(chatService.messages.length, equals(messages.length * 2));
+
+      // Verify messages are in correct order
+      for (var i = 0; i < messages.length; i++) {
+        expect(chatService.messages[i * 2].content, equals(messages[i]));
+        expect(chatService.messages[i * 2].isUser, isTrue);
+        expect(chatService.messages[i * 2 + 1].isUser, isFalse);
+      }
     });
   });
 }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
@@ -31,6 +32,16 @@ class _ChatJournalScreenState extends State<ChatJournalScreen> {
     setState(() {
       _isInitialized = available;
     });
+  }
+
+  Future<void> _analyzeEmotions(String message) async {
+    try {
+      await _chatService.analyzeEmotions(message);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error analyzing emotions: $e');
+      }
+    }
   }
 
   @override
@@ -161,8 +172,9 @@ class _ChatJournalScreenState extends State<ChatJournalScreen> {
                                 if (speechService.isListening) {
                                   await speechService.stopListening();
                                   if (speechService.text.isNotEmpty) {
-                                    await _chatService
-                                        .addUserMessage(speechService.text);
+                                    final text = speechService.text;
+                                    await _chatService.addUserMessage(text);
+                                    await _analyzeEmotions(text);
                                     speechService.clearText();
                                   }
                                 } else {
@@ -187,7 +199,8 @@ class _ChatJournalScreenState extends State<ChatJournalScreen> {
     );
   }
 
-  void _handleSendPressed(types.PartialText message) {
-    _chatService.addUserMessage(message.text);
+  void _handleSendPressed(types.PartialText message) async {
+    await _chatService.addUserMessage(message.text);
+    await _analyzeEmotions(message.text);
   }
 }
