@@ -236,18 +236,62 @@ class ChatService extends ChangeNotifier implements IChatService {
     }
   }
 
+  Future<void> createNewSession() async {
+    try {
+      if (kDebugMode) {
+        print('\n=== Creating New Session ===');
+      }
+
+      // Save current session if it exists
+      if (_currentSession != null) {
+        await _storageService.saveChatSession(_currentSession!);
+        if (kDebugMode) {
+          print('Saved current session: ${_currentSession?.id}');
+        }
+      }
+
+      // Create a new empty session
+      _currentSession = ChatSession.create();
+      // Save it to get an ID
+      await _storageService.saveChatSession(_currentSession!);
+
+      if (kDebugMode) {
+        print('Created new session with ID: ${_currentSession?.id}');
+      }
+
+      // Force refresh of UI
+      notifyListeners();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error creating new session: $e');
+      }
+    } finally {
+      if (kDebugMode) {
+        print('===========================\n');
+      }
+    }
+  }
+
   @override
   Future<void> clearChat() async {
     try {
-      // This will create a new session for today
-      await _loadCurrentSession();
-      notifyListeners();
       if (kDebugMode) {
-        print('Cleared chat and created new session');
+        print('\n=== Clearing Chat ===');
+      }
+
+      // Create a new session
+      await createNewSession();
+
+      if (kDebugMode) {
+        print('Chat cleared successfully');
       }
     } catch (e) {
       if (kDebugMode) {
         print('Error clearing chat: $e');
+      }
+    } finally {
+      if (kDebugMode) {
+        print('===========================\n');
       }
     }
   }

@@ -40,6 +40,43 @@ class _ChatJournalScreenState extends State<ChatJournalScreen> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           IconButton(
+            icon: const Icon(Icons.add),
+            tooltip: 'New Session',
+            onPressed: () async {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('New Session'),
+                  content: const Text(
+                      'Start a new session? This will save your current session and start a fresh one.'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Start New'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirmed == true) {
+                await _chatService.createNewSession();
+                setState(() {});
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Started a new session'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              }
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.delete),
             onPressed: () {
               _chatService.clearChat();
