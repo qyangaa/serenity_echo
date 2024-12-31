@@ -11,6 +11,7 @@ void main() {
   late MockAIService mockAIService;
   late MockStorageService mockStorageService;
   late ChatSession mockSession;
+  late ChatSession testSession;
 
   setUpAll(() {
     registerFallbackValue(ChatSessionFake());
@@ -47,6 +48,8 @@ void main() {
       aiService: mockAIService,
       storageService: mockStorageService,
     );
+
+    testSession = ChatSession.create();
   });
 
   group('ChatService Session Management', () {
@@ -79,15 +82,26 @@ void main() {
     });
 
     test('should reuse existing session for the day', () async {
-      final message1 = 'First message';
-      final message2 = 'Second message';
+      // Setup
+      when(() => mockStorageService.loadCurrentSession())
+          .thenAnswer((_) async => testSession);
+      when(() => mockStorageService.saveChatSession(any()))
+          .thenAnswer((_) async => {});
+      when(() => mockStorageService.updateSessionSummary(any(), any()))
+          .thenAnswer((_) async => {});
+      when(() => mockAIService.getResponse(any()))
+          .thenAnswer((_) async => 'Test response');
+      when(() => mockAIService.generateSummary(any()))
+          .thenAnswer((_) async => 'Mock Summary');
 
-      await chatService.addUserMessage(message1);
-      await chatService.addUserMessage(message2);
+      // Execute
+      await chatService.addUserMessage('First message');
+      await chatService.addUserMessage('Second message');
 
-      // Verify that we're using the same session
-      verify(() => mockStorageService.saveChatSession(any())).called(2);
+      // Verify
       verify(() => mockStorageService.loadCurrentSession()).called(1);
+      // 4 calls: 2 for user messages, 2 for summaries
+      verify(() => mockStorageService.saveChatSession(any())).called(4);
     });
   });
 
