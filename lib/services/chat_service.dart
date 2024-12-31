@@ -33,6 +33,10 @@ class ChatService extends ChangeNotifier implements IChatService {
     _isLoading = true;
 
     try {
+      if (kDebugMode) {
+        print('\n=== Loading Chat Session ===');
+      }
+
       _currentSession = await _storageService.loadCurrentSession();
       if (_currentSession == null) {
         if (kDebugMode) {
@@ -50,6 +54,15 @@ class ChatService extends ChangeNotifier implements IChatService {
       } else {
         if (kDebugMode) {
           print('Loaded existing session: ${_currentSession?.id}');
+          print('Message count: ${_currentSession?.messages.length}');
+          if (_currentSession?.messages.isNotEmpty ?? false) {
+            print('\nLast 3 messages:');
+            final lastMessages =
+                _currentSession!.messages.reversed.take(3).toList().reversed;
+            for (var m in lastMessages) {
+              print('${m.isUser ? "User" : "AI"}: ${m.content}');
+            }
+          }
         }
       }
       notifyListeners();
@@ -58,6 +71,9 @@ class ChatService extends ChangeNotifier implements IChatService {
         print('Error loading current session: $e');
       }
     } finally {
+      if (kDebugMode) {
+        print('===========================\n');
+      }
       _isLoading = false;
     }
   }
@@ -68,21 +84,34 @@ class ChatService extends ChangeNotifier implements IChatService {
   @override
   Future<void> addUserMessage(String content) async {
     try {
+      if (kDebugMode) {
+        print('\n=== Processing User Message ===');
+        print('Content: $content');
+      }
+
       // First, moderate the content
       final isContentSafe = await _moderateContent(content);
       if (!isContentSafe) {
+        if (kDebugMode) {
+          print('Content moderation failed - message rejected');
+        }
         final aiMessage = ChatMessage.createAIMessage(
           'I apologize, but I cannot process that content. Please ensure your message follows our community guidelines.',
         );
         _currentSession = _currentSession?.copyWith(
           messages: [...(_currentSession?.messages ?? []), aiMessage],
           messageCount: (_currentSession?.messageCount ?? 0) + 1,
+          summary: _currentSession?.summary ?? '',
+          lastSummarized: _currentSession?.lastSummarized,
         );
         notifyListeners();
         return;
       }
 
       if (_currentSession == null) {
+        if (kDebugMode) {
+          print('No active session, loading...');
+        }
         await _loadCurrentSession();
       }
 
@@ -103,8 +132,14 @@ class ChatService extends ChangeNotifier implements IChatService {
       _currentSession = _currentSession!.copyWith(
         messages: updatedMessages,
         messageCount: updatedMessages.length,
+        summary: _currentSession!.summary,
+        lastSummarized: _currentSession!.lastSummarized,
       );
       notifyListeners();
+
+      if (kDebugMode) {
+        print('\nGetting AI response...');
+      }
 
       // Get AI response
       final response = await _aiService.getResponse(content);
@@ -115,6 +150,8 @@ class ChatService extends ChangeNotifier implements IChatService {
       _currentSession = _currentSession!.copyWith(
         messages: finalMessages,
         messageCount: finalMessages.length,
+        summary: _currentSession!.summary,
+        lastSummarized: _currentSession!.lastSummarized,
       );
       notifyListeners();
 
@@ -122,17 +159,14 @@ class ChatService extends ChangeNotifier implements IChatService {
       await _storageService.saveChatSession(_currentSession!);
       if (kDebugMode) {
         print('Updated session ${_currentSession!.id} with new messages');
+        print('Current message count: ${finalMessages.length}');
       }
 
-      // Check if we need to summarize
-      if (finalMessages.length >= _summarizeAfterMessages &&
-          (_currentSession!.lastSummarized == null ||
-              DateTime.now()
-                      .difference(_currentSession!.lastSummarized!)
-                      .inMinutes >
-                  30)) {
-        await _updateSummary();
+      // Generate summary after every message for debugging
+      if (kDebugMode) {
+        print('\nGenerating debug summary after message...');
       }
+      await _updateSummary();
     } catch (e) {
       if (kDebugMode) {
         print('Error in chat interaction: $e');
@@ -144,23 +178,60 @@ class ChatService extends ChangeNotifier implements IChatService {
       _currentSession = _currentSession?.copyWith(
         messages: [...(_currentSession?.messages ?? []), errorMessage],
         messageCount: (_currentSession?.messageCount ?? 0) + 1,
+        summary: _currentSession?.summary ?? '',
+        lastSummarized: _currentSession?.lastSummarized,
       );
       notifyListeners();
+    } finally {
+      if (kDebugMode) {
+        print('=============================\n');
+      }
     }
   }
 
   Future<void> _updateSummary() async {
     try {
-      final summary = await _aiService.generateSummary(
-        messages.map((m) => m.content).toList(),
-      );
-      await _storageService.updateSessionSummary(_currentSession!.id, summary);
       if (kDebugMode) {
-        print('Updated summary for session ${_currentSession!.id}');
+        print('\n=== Updating Summary ===');
+        print('Messages to summarize: ${messages.length}');
+        print('Last summarized: ${_currentSession?.lastSummarized}');
+        print(
+            'Time since last summary: ${_currentSession?.lastSummarized != null ? DateTime.now().difference(_currentSession!.lastSummarized!).inMinutes : "never"} minutes');
+      }
+
+      final summary = await _aiService.generateSummary(
+        messages
+            .map((m) => '${m.isUser ? "User" : "AI"}: ${m.content}')
+            .toList(),
+      );
+
+      if (kDebugMode) {
+        print('\nGenerated Summary:');
+        print(summary);
+      }
+
+      await _storageService.updateSessionSummary(_currentSession!.id, summary);
+
+      // Update lastSummarized timestamp
+      _currentSession = _currentSession!.copyWith(
+        lastSummarized: DateTime.now(),
+        summary: summary,
+      );
+      await _storageService.saveChatSession(_currentSession!);
+
+      if (kDebugMode) {
+        print('\nSummary saved for session ${_currentSession!.id}');
+        print('Summary length: ${summary.length} characters');
+        print(
+            'Next summary will be generated after: ${_currentSession!.lastSummarized!.add(Duration(minutes: 30))}');
       }
     } catch (e) {
       if (kDebugMode) {
         print('Error updating summary: $e');
+      }
+    } finally {
+      if (kDebugMode) {
+        print('=======================\n');
       }
     }
   }

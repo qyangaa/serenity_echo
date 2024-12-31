@@ -1,35 +1,33 @@
+import 'package:uuid/uuid.dart';
 import 'chat_message.dart';
 
 class ChatSession {
   final String id;
   final List<ChatMessage> messages;
-  final String? historySummary;
-  final DateTime? lastSummarized;
   final int messageCount;
+  final DateTime? lastSummarized;
+  final String summary;
   final DateTime created;
   final DateTime updated;
-  final Map<String, double>? emotionalTrends;
 
-  ChatSession({
+  const ChatSession({
     required this.id,
     required this.messages,
-    this.historySummary,
-    this.lastSummarized,
     required this.messageCount,
+    this.lastSummarized,
+    this.summary = '',
     required this.created,
     required this.updated,
-    this.emotionalTrends,
   });
 
   Map<String, dynamic> toJson() {
     return {
       'messages': messages.map((m) => m.toJson()).toList(),
-      'historySummary': historySummary,
-      'lastSummarized': lastSummarized?.toIso8601String(),
       'messageCount': messageCount,
+      'lastSummarized': lastSummarized?.toIso8601String(),
+      'summary': summary,
       'created': created.toIso8601String(),
       'updated': updated.toIso8601String(),
-      'emotionalTrends': emotionalTrends,
     };
   }
 
@@ -40,48 +38,46 @@ class ChatSession {
               ?.map((m) => ChatMessage.fromJson(m as Map<String, dynamic>))
               .toList() ??
           [],
-      historySummary: json['historySummary'] as String?,
+      messageCount: json['messageCount'] as int? ?? 0,
       lastSummarized: json['lastSummarized'] != null
           ? DateTime.parse(json['lastSummarized'] as String)
           : null,
-      messageCount: json['messageCount'] as int? ?? 0,
+      summary: json['summary'] as String? ?? '',
       created: DateTime.parse(json['created'] as String),
       updated: DateTime.parse(json['updated'] as String),
-      emotionalTrends: (json['emotionalTrends'] as Map<String, dynamic>?)?.map(
-        (key, value) => MapEntry(key, value as double),
-      ),
     );
   }
 
   factory ChatSession.create() {
+    final now = DateTime.now();
     return ChatSession(
-      id: '', // Will be set by Firestore
-      messages: [],
+      id: const Uuid().v4(),
+      messages: const [],
       messageCount: 0,
-      created: DateTime.now(),
-      updated: DateTime.now(),
+      lastSummarized: null,
+      summary: '',
+      created: now,
+      updated: now,
     );
   }
 
   ChatSession copyWith({
     String? id,
     List<ChatMessage>? messages,
-    String? historySummary,
-    DateTime? lastSummarized,
     int? messageCount,
+    DateTime? lastSummarized,
+    String? summary,
     DateTime? created,
     DateTime? updated,
-    Map<String, double>? emotionalTrends,
   }) {
     return ChatSession(
       id: id ?? this.id,
       messages: messages ?? this.messages,
-      historySummary: historySummary ?? this.historySummary,
-      lastSummarized: lastSummarized ?? this.lastSummarized,
       messageCount: messageCount ?? this.messageCount,
+      lastSummarized: lastSummarized ?? this.lastSummarized,
+      summary: summary ?? this.summary,
       created: created ?? this.created,
       updated: updated ?? this.updated,
-      emotionalTrends: emotionalTrends ?? this.emotionalTrends,
     );
   }
 }
